@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Array
 import os
 import json
 
@@ -18,8 +18,7 @@ app.add_middleware(
 
 
 class GenerateRequest(BaseModel):
-    prompt: str
-    system: Optional[str] = None
+    messages: List[Any]
     schema: Dict[str, Any]
     temperature: Optional[float] = 0.7
     maxTokens: Optional[int] = None
