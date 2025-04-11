@@ -83,4 +83,4 @@ luna-backend/
 ```
 
 ## Frontend Integration
-The API is configured to work with the Luna frontend at https://luna-sable-six.vercel.app/. CORS is enabled for this domain. 
+The API is configured to work with the Luna frontend at https://luna-sable-six.vercel.app/. CORS is enabled for this domain site.
