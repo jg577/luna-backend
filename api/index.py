@@ -35,7 +35,7 @@ class GenerateResponse(BaseModel):
     queries: List[Query]
 
 
-@app.post("/api/generate")
+@app.post("api/chat/completion")
 async def generate(request: GenerateRequest) -> Dict[str, Any]:
     try:
         # Here you would typically call your LLM service
