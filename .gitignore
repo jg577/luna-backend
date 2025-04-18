@@ -1,1 +1,16 @@
 .vercel
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.env.local
+.venv
+venv/
+ENV/
+env/
+*.ipynb
+.ipynb_checkpoints
+*.egg-info/
+dist/
+build/
