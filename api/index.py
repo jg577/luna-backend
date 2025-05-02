@@ -46,6 +46,10 @@ class GenerateRequest(BaseModel):
     maxTokens: Optional[int] = None
     prompt_template: Optional[str] = "prompt1"
 
+class NewsRequest(BaseModel):
+    """Request model for news feed API"""
+    limit: Optional[int] = 20  # Default to 20 items
+    offset: Optional[int] = 0  # Default to starting from the beginning
 
 class Query(BaseModel):
     queryName: str
@@ -103,6 +107,83 @@ async def generate(request: GenerateRequest) -> Dict[str, Any]:
                 status_code=500, detail=f"Error generating query: {str(e)}"
             )
 
+    except HTTPException:
+        # Re-raise HTTP exceptions without wrapping
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error generating response: {str(e)}"
+        )
+
+
+@app.post("/api/news")
+async def fetch_news(request: NewsRequest) -> List[Dict[str, Any]]:
+    try:
+        # Log request info
+        logger.info(f"Fetching news feed with limit {request.limit}, offset {request.offset}")
+        
+        # Get Luna generator
+        try:
+            luna_generator = luna.get_luna_generator()
+        except Exception as e:
+            logger.error(f"Failed to initialize generator: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=500, detail=f"Error initializing generator: {str(e)}"
+            )
+        
+        # Fetch news items
+        try:
+            news_items = await luna_generator.fetch_news_feed()
+            
+            # Apply limit and offset if specified
+            paginated_items = news_items[request.offset : request.offset + request.limit]
+            
+            return paginated_items
+        except Exception as e:
+            logger.error(f"Error fetching news feed: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=500, detail=f"Error fetching news feed: {str(e)}"
+            )
+    except HTTPException:
+        # Re-raise HTTP exceptions without wrapping
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error generating response: {str(e)}"
+        )
+
+
+@app.get("/api/news")
+async def get_news(limit: int = 20, offset: int = 0) -> List[Dict[str, Any]]:
+    """GET endpoint for news feed that takes query parameters instead of a request body"""
+    try:
+        # Log request info
+        logger.info(f"Fetching news feed with limit {limit}, offset {offset}")
+        
+        # Get Luna generator
+        try:
+            luna_generator = luna.get_luna_generator()
+        except Exception as e:
+            logger.error(f"Failed to initialize generator: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=500, detail=f"Error initializing generator: {str(e)}"
+            )
+        
+        # Fetch news items
+        try:
+            news_items = await luna_generator.fetch_news_feed()
+            
+            # Apply limit and offset if specified
+            paginated_items = news_items[offset : offset + limit]
+            
+            return paginated_items
+        except Exception as e:
+            logger.error(f"Error fetching news feed: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=500, detail=f"Error fetching news feed: {str(e)}"
+            )
     except HTTPException:
         # Re-raise HTTP exceptions without wrapping
         raise

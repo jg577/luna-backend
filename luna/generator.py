@@ -11,6 +11,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatMessagePromptTemplate
 from langchain import hub
 from langchain.chains.sql_database.query import create_sql_query_chain
+import ast  # For safely evaluating the string representation of Python literals
+import re   # For regex patterns
 
 
 # Configure logging
@@ -320,6 +322,110 @@ Given a dataset and a request, create a chart configuration that best represents
                     "seriesConfig": {},
                 }
             }
+
+    async def fetch_news_feed(self) -> List[Dict[str, Any]]:
+        """
+        Fetch news items from the feed_items table and transform them to the expected frontend format.
+
+        Returns:
+            A list of news items with id, title, description, severity, timestamp, and imageUrl
+        """
+        logger.info("Fetching news items from feed_items table")
+
+        try:
+            # SQL query with correct column names for feed_items table
+            query = """
+            SELECT 
+                id::text, 
+                name,
+                date,
+                result,
+                TO_CHAR(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as timestamp
+            FROM 
+                feed_items
+            ORDER BY 
+                created_at DESC
+            """
+            
+            # Execute the query
+            result = self.db.run(query)
+            logger.info(f"Fetched news items from feed_items table")
+            
+            # Parse the result into a list of dictionaries
+            parsed_items = []
+            
+            if isinstance(result, str):
+                # Replace datetime.date objects with string representations
+                # Format: datetime.date(2025, 4, 30) -> "2025-04-30"
+                pattern = r'datetime\.date\((\d+),\s*(\d+),\s*(\d+)\)'
+                
+                def date_replacer(match):
+                    year, month, day = match.groups()
+                    return f'"{year}-{month.zfill(2)}-{day.zfill(2)}"'
+                
+                result_fixed = re.sub(pattern, date_replacer, result)
+                
+                try:
+                    # Now we can safely parse the modified string
+                    parsed_result = ast.literal_eval(result_fixed)
+                    
+                    # Process each tuple in the result
+                    for row in parsed_result:
+                        if len(row) >= 4:  # Make sure we have enough columns
+                            # Extract fields
+                            id_val = row[0]
+                            title = row[1]
+                            date_val = row[2]  # Now a string in format "YYYY-MM-DD"
+                            result_json = row[3]  # This is a dict
+                            timestamp = row[4] if len(row) > 4 else None
+                            
+                            # Extract message or description from the result
+                            description = result_json.get('message', f"Analysis from {date_val}")
+                            
+                            # Determine severity based on notification type or content
+                            severity = "neutral"
+                            notification_type = result_json.get('notification_type', '')
+                            if "Alert" in notification_type or "Warning" in notification_type:
+                                if "suspicious" in description.lower() or "suss" in description.lower():
+                                    severity = "bad"
+                            elif "Success" in notification_type or "Info" in notification_type:
+                                severity = "good"
+                            
+                            # Create the item in the expected frontend format
+                            item = {
+                                "id": str(id_val),
+                                "title": title,
+                                "description": description,
+                                "severity": severity,
+                                "timestamp": timestamp,
+                                "imageUrl": None  # No image URLs in this data
+                            }
+                            
+                            parsed_items.append(item)
+                except Exception as e:
+                    logger.error(f"Error parsing result: {str(e)}")
+            
+            return parsed_items
+        except Exception as e:
+            logger.error(f"Error fetching news feed: {str(e)}")
+            # Return empty list if query fails
+            return []
+    
+    def _extract_description(self, item: Dict[str, Any]) -> str:
+        """Extract a meaningful description from the item data"""
+        # Try to get description from result JSONB if available
+        if isinstance(item.get("result"), dict):
+            result = item["result"]
+            # Look for common fields that might contain useful text
+            for field in ["description", "summary", "message", "text", "content"]:
+                if field in result and result[field]:
+                    return str(result[field])
+            
+            # If no specific fields found, return a stringified summary
+            return f"Analysis results for {item.get('name', 'query')} on {item.get('date', '')}"
+        
+        # Fallback description
+        return f"Analysis from {item.get('date', 'recent date')}"
 
 
 # Singleton instance
