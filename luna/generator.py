@@ -397,6 +397,7 @@ Given a dataset and a request, create a chart configuration that best represents
                                 "title": title,
                                 "description": description,
                                 "severity": severity,
+                                "date": date_val,  # Add the date_val that's already being extracted
                                 "timestamp": timestamp,
                                 "imageUrl": None  # No image URLs in this data
                             }
