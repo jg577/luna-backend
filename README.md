@@ -140,6 +140,7 @@ The Luna Generator is the core class that provides the main functionality of the
 
 1. **SQL Query Generation**: Transforms natural language questions into SQL queries based on database schema
 2. **Chart Generation**: Creates chart configurations based on data and natural language visualization requests
+3. **NewsFeed**: Provide feed items for alerts
 
 The generator uses LangChain with OpenAI models to process natural language prompts and generate appropriate SQL queries or chart configurations. It includes:
 
