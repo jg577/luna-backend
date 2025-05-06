@@ -337,9 +337,9 @@ Given a dataset and a request, create a chart configuration that best represents
             query = """
             SELECT 
                 id::text, 
-                name,
                 date,
-                result,
+                query_name,
+                alert,
                 TO_CHAR(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as timestamp
             FROM 
                 feed_items
@@ -374,27 +374,24 @@ Given a dataset and a request, create a chart configuration that best represents
                         if len(row) >= 4:  # Make sure we have enough columns
                             # Extract fields
                             id_val = row[0]
-                            title = row[1]
-                            date_val = row[2]  # Now a string in format "YYYY-MM-DD"
-                            result_json = row[3]  # This is a dict
+                            date_val = row[1]  # Now a string in format "YYYY-MM-DD"
+                            query_name = row[2]
+                            alert_json = row[3]  # This is a dict
                             timestamp = row[4] if len(row) > 4 else None
                             
                             # Extract message or description from the result
-                            description = result_json.get('message', f"Analysis from {date_val}")
+                            description = alert_json.get('message', f"Analysis from {date_val}")
                             
                             # Determine severity based on notification type or content
-                            severity = "neutral"
-                            notification_type = result_json.get('notification_type', '')
-                            if "Alert" in notification_type or "Warning" in notification_type:
-                                if "suspicious" in description.lower() or "suss" in description.lower():
-                                    severity = "bad"
-                            elif "Success" in notification_type or "Info" in notification_type:
-                                severity = "good"
+                            severity = alert_json.get('severity', 0)
+                            notification_type = alert_json.get('notification_type', '')
+                            date = alert_json.get('date','')
+                            
                             
                             # Create the item in the expected frontend format
                             item = {
                                 "id": str(id_val),
-                                "title": title,
+                                "title": notification_type,
                                 "description": description,
                                 "severity": severity,
                                 "date": date_val,  # Add the date_val that's already being extracted
