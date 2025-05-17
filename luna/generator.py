@@ -387,6 +387,15 @@ Given a dataset and a request, create a chart configuration that best represents
                             notification_type = alert_json.get('notification_type', '')
                             date = alert_json.get('date','')
                             
+                            alert_detail_map = {
+                                "Clock-in":"""WITH ReportDate AS (    SELECT {{report_date}}::date AS target_date),OvertimeReport AS (    SELECT        employee,        employee_id,        SUM(overtime_hours) AS report_ot_hours    FROM time_entries, ReportDate r    WHERE DATE_TRUNC('day', out_date AT TIME ZONE 'America/New_York' AT TIME ZONE 'America/New_York') = r.target_date    GROUP BY employee, employee_id)SELECT    r.target_date AS date,    'Overtime hours' AS notification_type,    0 AS severity,    CONCAT(o.employee, ' on ', TO_CHAR(r.target_date, 'YYYY-MM-DD'), ' had ', ROUND(o.report_ot_hours, 2)) AS message,    NULL AS additional_dataFROM OvertimeReport o, ReportDate rWHERE o.report_ot_hours > 0;""",
+                                "Pricing Opportunity":"",
+                                "Overtime hours":"",
+                                "Month to date summary":""
+                            }
+                            
+                            additional_detail = alert_detail_map[notification_type] + description
+                            
                             
                             # Create the item in the expected frontend format
                             item = {
@@ -396,7 +405,8 @@ Given a dataset and a request, create a chart configuration that best represents
                                 "severity": severity,
                                 "date": date_val,  # Add the date_val that's already being extracted
                                 "timestamp": timestamp,
-                                "imageUrl": None  # No image URLs in this data
+                                "imageUrl": None,  # No image URLs in this data
+                                "additional_detail": additional_detail,
                             }
                             
                             parsed_items.append(item)
