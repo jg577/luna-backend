@@ -387,6 +387,7 @@ Given a dataset and a request, create a chart configuration that best represents
                             notification_type = alert_json.get('notification_type', '')
                             date = alert_json.get('date','')
                             
+                            # Define mapping for notification types to additional details
                             alert_detail_map = {
                                 "Clock-in":"""WITH ReportDate AS (    SELECT {{report_date}}::date AS target_date),OvertimeReport AS (    SELECT        employee,        employee_id,        SUM(overtime_hours) AS report_ot_hours    FROM time_entries, ReportDate r    WHERE DATE_TRUNC('day', out_date AT TIME ZONE 'America/New_York' AT TIME ZONE 'America/New_York') = r.target_date    GROUP BY employee, employee_id)SELECT    r.target_date AS date,    'Overtime hours' AS notification_type,    0 AS severity,    CONCAT(o.employee, ' on ', TO_CHAR(r.target_date, 'YYYY-MM-DD'), ' had ', ROUND(o.report_ot_hours, 2)) AS message,    NULL AS additional_dataFROM OvertimeReport o, ReportDate rWHERE o.report_ot_hours > 0;""",
                                 "Pricing Opportunity":"",
@@ -394,8 +395,8 @@ Given a dataset and a request, create a chart configuration that best represents
                                 "Month to date summary":""
                             }
                             
-                            additional_detail = alert_detail_map[notification_type] + description
-                            
+                            # Get additional detail from the mapping or use empty string if not found
+                            additional_detail = alert_detail_map.get(notification_type, '')
                             
                             # Create the item in the expected frontend format
                             item = {
