@@ -395,8 +395,15 @@ Given a dataset and a request, create a chart configuration that best represents
                                 "Month to date summary":""
                             }
                             
+                            alert_generating_script = {
+                                "Clock-in":"WITH ReportDates AS SELECT DISTINCT DATE(in_date AT TIME ZONE 'America/New_York') AS date FROM time_entries ), FirstClockIn AS ( SELECT employee, employee_id, DATE_TRUNC('month', in_date AT TIME ZONE 'America/New_York') AS year_month, DATE(in_date AT TIME ZONE 'America/New_York') AS in_day, MIN(in_date) AS first_in_date FROM time_entries GROUP BY employee, employee_id, DATE_TRUNC('month', in_date AT TIME ZONE 'America/New_York'), DATE(in_date AT TIME ZONE 'America/New_York') ), SussClockIns AS ( SELECT employee, employee_id, year_month, first_in_date AT TIME ZONE 'America/New_York' AS local_first_in, EXTRACT(MINUTE FROM (first_in_date AT TIME ZONE 'America/New_York')) AS clock_in_minute FROM FirstClockIn WHERE (EXTRACT(MINUTE FROM (first_in_date AT TIME ZONE 'America/New_York')) BETWEEN 14 AND 19 OR EXTRACT(MINUTE FROM (first_in_date AT TIME ZONE 'America/New_York')) BETWEEN 41 AND 49)) SELECT TO_CHAR(year_month, 'YYYY') AS year, COUNT(*) AS early_clockin_count;",
+                                "Pricing Opportunity":"",
+                                "Overtime hours":"",
+                                "Month to date summary":""
+                            }
+                            
                             # Get additional detail from the mapping or use empty string if not found
-                            additional_detail = alert_detail_map.get(notification_type, '')
+                            additional_detail = alert_detail_map.get(notification_type, '') 
                             
                             # Create the item in the expected frontend format
                             item = {
